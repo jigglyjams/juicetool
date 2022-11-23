@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import SiteNav from "../../../components/SiteNav";
 import { useForm, FormProvider, useFormContext, Controller, SubmitHandler } from "react-hook-form";
 import ResolvedEns from "../../../components/ResolvedEns";
@@ -156,9 +156,8 @@ function Form() {
       version: String(metadata.version)
     };
 
+    setSigning(true);
     signPayload(jrpcSigner, space as string, 'upload', payload).then((signature) => {
-
-      setSigning(false);
       // send to API endpoint
       reset();
       const req: ProposalUploadRequest = {
@@ -166,7 +165,9 @@ function Form() {
         proposal: payload
       }
       console.debug("📗 Nance.newProposal.upload ->", req);
-      trigger(req);
+      trigger(req).then(() => {
+        setSigning(false);
+      });
     }).catch((err) => {
       setSigning(false);
       setSignError(err);
@@ -210,6 +211,7 @@ function Form() {
             <div className="md:col-span-1">
               <h3 className="text-lg font-medium leading-6 text-gray-900">Proposal</h3>
               <p className="mt-1 text-sm text-gray-500">Detailed content of your proposal.</p>
+              <p className="mt-1 text-sm text-gray-500">Proposal content saved locally until you submit!</p>
             </div>
             <div className="mt-5 md:col-span-2 md:mt-0">
               <div className="grid grid-cols-6 gap-6">
@@ -344,7 +346,7 @@ function Form() {
             disabled={!jrpcSigner || isSubmitting}
             className="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-400"
           >
-            {isSubmitting ? "Submitting" : "Submit"}
+            {isSubmitting ? "Sign txn..." : "Submit"}
           </button>
         </div>
       </form>
@@ -539,6 +541,7 @@ function PayoutMetadataForm() {
             }}
             className="block w-full flex-1 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             placeholder="jbdao.eth / 0x0000000000000000000000000000000000000000"
+            defaultValue={watch("proposal.payout.type") === "project" ? "jbdao.eth" : null }
           />
           <input
             type="text"
